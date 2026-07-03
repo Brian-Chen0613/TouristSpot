@@ -15,4 +15,6 @@ export default defineConfig({
   server: {
     open: true,
   },
+  base: "/TouristSpot/",
+  plugins: [vue()],
 });
