@@ -1,0 +1,23 @@
+export const cityNameToSlug = {
+  '臺北市': 'taipei',
+  '新北市': 'new-taipei',
+  '桃園市': 'taoyuan',
+  '臺中市': 'taichung',
+  '臺南市': 'tainan',
+  '高雄市': 'kaohsiung',
+  '基隆市': 'keelung',
+  '新竹市': 'hsinchu-city',
+  '新竹縣': 'hsinchu-county',
+  '苗栗縣': 'miaoli',
+  '彰化縣': 'changhua',
+  '南投縣': 'nantou',
+  '雲林縣': 'yunlin',
+  '嘉義市': 'chiayi-city',
+  '嘉義縣': 'chiayi-county',
+  '屏東縣': 'pingtung',
+  '宜蘭縣': 'yilan',
+  '花蓮縣': 'hualien',
+  '臺東縣': 'taitung',
+  '澎湖縣': 'penghu',
+  // 金門縣、連江縣暫時排除
+}
