@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { spots } from '@/data/spotData.js'
 import { useFavorites } from '@/composables/useFavorites.js'
@@ -26,10 +26,6 @@ const filteredSpots = computed(() =>
     ? citySpots.value
     : citySpots.value.filter((spot) => spot.category === activeFilter.value)
 )
-
-watch(activeFilter, () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-})
 
 const showGoTop = ref(false)
 const handleScroll = () => {
@@ -61,6 +57,56 @@ onUnmounted(() => {
 const goToSpot = (spotId) => {
   router.push('/map/' + route.params.city + '/' + spotId)
 }
+
+const revealedIds = reactive(new Set())
+const revealDelays = reactive(new Map())
+const idToEl = new Map()
+const elToId = new Map()
+
+const cardObserver = new IntersectionObserver((entries) => {
+  const newlyVisible = entries
+    .filter((entry) => entry.isIntersecting)
+    .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+  newlyVisible.forEach((entry, batchIndex) => {
+    const id = elToId.get(entry.target)
+    if (id) {
+      revealDelays.set(id, batchIndex * 150)
+      revealedIds.add(id)
+    }
+    cardObserver.unobserve(entry.target)
+    elToId.delete(entry.target)
+  })
+}, { threshold: 0.1 })
+
+const registerCard = (el, id) => {
+  const prevEl = idToEl.get(id)
+  if (prevEl) {
+    cardObserver.unobserve(prevEl)
+    elToId.delete(prevEl)
+    idToEl.delete(id)
+  }
+  if (!el) return
+  idToEl.set(id, el)
+  if (revealedIds.has(id)) return
+  elToId.set(el, id)
+  cardObserver.observe(el)
+}
+
+const cardRefs = new Map()
+const getCardRef = (id) => {
+  if (!cardRefs.has(id)) {
+    cardRefs.set(id, (el) => registerCard(el, id))
+  }
+  return cardRefs.get(id)
+}
+
+onUnmounted(() => {
+  cardObserver.disconnect()
+})
+
+watch(activeFilter, () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+})
 </script>
 
 <template>
@@ -93,11 +139,18 @@ const goToSpot = (spotId) => {
       </div>
     </header>
 
-    <div class="max-w-[1300px] mx-auto w-full flex flex-col gap-[clamp(12px,2vw,16px)] px-[clamp(16px,4vw,40px)] py-[clamp(16px,3vw,24px)]">
+    <TransitionGroup
+      tag="div"
+      name="spot"
+      class="max-w-[1300px] mx-auto w-full flex flex-col gap-[clamp(12px,2vw,16px)] px-[clamp(16px,4vw,40px)] py-[clamp(16px,3vw,24px)]"
+    >
       <div
         v-for="spot in filteredSpots"
         :key="spot.id"
+        :ref="getCardRef(spot.id)"
         class="bg-surface rounded-xl border border-border-soft overflow-hidden flex flex-col min-[500px]:flex-row gap-4 cursor-pointer hover:shadow-md transition-shadow duration-200"
+        :class="revealedIds.has(spot.id) ? 'reveal-visible' : 'reveal-hidden'"
+        :style="{ '--spot-delay': `${revealDelays.get(spot.id) ?? 0}ms` }"
         @click="goToSpot(spot.id)"
       >
         <div class="w-full min-[500px]:w-[150px] md:w-[200px] shrink-0">
@@ -128,7 +181,7 @@ const goToSpot = (spotId) => {
           <p class="text-body text-muted line-clamp-2">{{ spot.description }}</p>
         </div>
       </div>
-    </div>
+    </TransitionGroup>
 
     <button
       v-show="showGoTop"
@@ -165,5 +218,29 @@ const goToSpot = (spotId) => {
       #FFF8EF 0%,
       #F8FCF8 45%,
       #EAF7F3 100%)
+}
+
+.reveal-hidden {
+  opacity: 0;
+  transform: translateX(160px);
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 1s ease, transform 1s ease-out;
+  transition-delay: var(--spot-delay, 0ms);
+}
+
+.spot-move {
+  transition: transform 0.3s ease-out;
+}
+
+.spot-leave-active {
+  transition: opacity 0s ease;
+}
+
+.spot-leave-to {
+  opacity: 0;
 }
 </style>
