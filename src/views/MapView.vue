@@ -16,6 +16,14 @@ let map = null
 let countyLayer = null
 let resizeObserver = null
 
+const NOTICE_STORAGE_KEY = 'tw-travel-data-notice-seen'
+const showNotice = ref(false)
+
+const closeNotice = () => {
+  showNotice.value = false
+  sessionStorage.setItem(NOTICE_STORAGE_KEY, 'true')
+}
+
 const featureCards = [
   { icon: 'fa-mountain', title: '山海之美', desc: '壯麗山景與迷人海岸，感受大自然的鬼斧神工', image: natureImg },
   { icon: 'fa-landmark', title: '文化古蹟', desc: '走訪歷史遺跡與古老街區，體驗在地文化底蘊', image: ruinImg },
@@ -104,6 +112,10 @@ const keepMainlandOnly = (featureCollection) => {
 }
 
 onMounted(() => {
+  if (!sessionStorage.getItem(NOTICE_STORAGE_KEY)) {
+    showNotice.value = true
+  }
+
   map = L.map(mapContainer.value, {
     minZoom: getMinZoom(),
     scrollWheelZoom: false,
@@ -200,6 +212,21 @@ onUnmounted(() => {
     <div class="[grid-area:map] min-[1000px]:justify-self-center">
       <div class="h-[60vh] min-[1000px]:h-full min-[1000px]:aspect-[13/20]">
         <div id="map" ref="mapContainer" class="w-full h-full"></div>
+      </div>
+    </div>
+
+    <div v-if="showNotice" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center px-6">
+      <div class="bg-surface rounded-2xl p-6 w-full max-w-[360px] flex flex-col gap-4">
+        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <i class="fas fa-circle-info text-primary" style="font-size: 1.5rem"></i>
+        </div>
+        <h3 class="text-subheading-sm font-medium text-ink">資料建置中</h3>
+        <p class="text-body text-muted">目前僅完整收錄「臺中市」的景點資料，其餘縣市仍在陸續建置中，敬請期待！</p>
+        <button
+          class="w-full py-2 rounded-full bg-primary text-white text-button font-medium hover:opacity-90 transition-opacity duration-200"
+          @click="closeNotice">
+          我知道了
+        </button>
       </div>
     </div>
   </div>
